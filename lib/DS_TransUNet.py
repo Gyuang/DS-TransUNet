@@ -6,10 +6,9 @@ import numpy as np
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 from torch.autograd import Variable
 
-from utils.checkpoint import load_checkpoint
-from mmseg.utils import get_root_logger
+#from mmseg.utils import get_root_logger
 
-from utils.module import Attention, PreNorm, FeedForward, CrossAttention
+from module import Attention, PreNorm, FeedForward, CrossAttention
 
 groups = 32
 
@@ -646,8 +645,8 @@ class SwinTransformer(nn.Module):
 
         if isinstance(pretrained, str):
             self.apply(_init_weights)
-            logger = get_root_logger()
-            load_checkpoint(self, pretrained, strict=False, logger=logger)
+            #logger = get_root_logger()
+            #load_checkpoint(self, pretrained, strict=False, logger=logger)
         elif pretrained is None:
             self.apply(_init_weights)
         else:
@@ -934,13 +933,13 @@ class Cross_Att(nn.Module):
 
 
 
-class UNet(nn.Module):
+class DS_UNet(nn.Module):
     def __init__(self, dim, n_class, in_ch=3):
         super().__init__()
         self.encoder = SwinTransformer(depths=[2, 2, 18, 2], num_heads=[ 4, 8, 16, 32 ], drop_path_rate=0.5, embed_dim=128)
         self.encoder2 = SwinTransformer(depths=[2, 2, 6, 2], num_heads=[ 3, 6, 12, 24 ], drop_path_rate=0.2, patch_size=8, embed_dim=96)
-        self.encoder.init_weights('checkpoints/swin_base_patch4_window7_224_22k.pth')
-        self.encoder2.init_weights('checkpoints/swin_tiny_patch4_window7_224.pth')
+#        self.encoder.init_weights('checkpoints/swin_base_patch4_window7_224_22k.pth')
+#        self.encoder2.init_weights('checkpoints/swin_tiny_patch4_window7_224.pth')
         self.layer1 = Swin_Decoder(8*dim, 2, 8)
         self.layer2 = Swin_Decoder(4*dim, 2, 4)
         self.layer3 = Swin_Decoder(2*dim, 2, 2)
@@ -989,7 +988,8 @@ class UNet(nn.Module):
        e1 = torch.cat([e1, self.m1(r1)], 1)
        e2 = torch.cat([e2, self.m1(r2)], 1)
        e3 = torch.cat([e3, self.m1(r3)], 1)
-       e4 = torch.cat([e4, self.m1(r4)], 1)
+       e4 = torch.cat([e4, self.m1(r4)], 1) # 여기서 4가나와서 7로 upsample이 안됨 
+
        e1 = self.change1(e1)
        e2 = self.change2(e2)
        e3 = self.change3(e3)
@@ -1012,7 +1012,7 @@ if __name__ == '__main__':
     print('#### Test Case ###')
     from torch.autograd import Variable
     x = Variable(torch.rand(2, 3,64,64)).cuda()
-    model = UNet(128, 1).cuda()
+    model = DS_UNet(128, 1).cuda()
     print("Input shape:", x.shape)
     y = model(x)
     print('Output shape:',y[-1].shape)
